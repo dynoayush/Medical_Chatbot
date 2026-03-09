@@ -1,15 +1,19 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, request, session
 from src.helper import download_hugging_face_embeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_community.chat_message_histories import SQLChatMessageHistory
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from dotenv import load_dotenv
 from src.prompt import *
 import os
+from uuid import uuid4
 
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 
 
 load_dotenv()
@@ -52,11 +56,20 @@ retriever = docsearch.as_retriever(
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
+    MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
 
 question_answer_chain = create_stuff_documents_chain(chatModel, prompt)
 rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+
+
+def get_session_id() -> str:
+    session_id = session.get("session_id")
+    if not session_id:
+        session_id = str(uuid4())
+        session["session_id"] = session_id
+    return session_id
 
 @app.route("/")
 def index():
@@ -67,9 +80,18 @@ def index():
 @app.route("/get", methods=["GET", "POST"])
 def chat():
     msg = request.form["msg"]
-    input = msg
-    print(input)
-    response = rag_chain.invoke({"input": msg})
+    print(msg)
+    chat_history = SQLChatMessageHistory(
+        session_id=get_session_id(),
+        connection="sqlite:///chat_history.db",
+        table_name="message_store",
+    )
+    response = rag_chain.invoke({
+        "input": msg,
+        "chat_history": chat_history.messages,
+    })
+    chat_history.add_message(HumanMessage(content=msg))
+    chat_history.add_message(AIMessage(content=response["answer"]))
     print("Response : ", response["answer"])
     return str(response["answer"])
 
