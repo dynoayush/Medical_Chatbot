@@ -18,13 +18,15 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 
 load_dotenv()
 
-PINECONE_API_KEY=os.environ.get('PINECONE_API_KEY')
+PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
+if not PINECONE_API_KEY:
+    raise ValueError("PINECONE_API_KEY is not set")
 
 os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
 
 embeddings = download_hugging_face_embeddings()
 
-index_name = "medical-chatbot" 
+index_name = os.environ.get("PINECONE_INDEX_NAME", "medical-chatbot")
 # Embed each chunk and upsert the embeddings into your Pinecone index.
 docsearch = PineconeVectorStore.from_existing_index(
     index_name=index_name,
@@ -33,12 +35,12 @@ docsearch = PineconeVectorStore.from_existing_index(
 
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k":3})
 
-MODEL = "llama3.2:3b"   # fastest reliable option on your machine
-SEARCH_K = 3
-FETCH_K = 10
-CHUNK_SIZE = 700
-CHUNK_OVERLAP = 80
-NUM_PREDICT = 120
+MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
+SEARCH_K = int(os.environ.get("SEARCH_K", "3"))
+FETCH_K = int(os.environ.get("FETCH_K", "10"))
+NUM_PREDICT = int(os.environ.get("NUM_PREDICT", "120"))
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+CHAT_DB_URL = os.environ.get("CHAT_DB_URL", "sqlite:///chat_history.db")
 
 from langchain_ollama import ChatOllama
 
@@ -46,7 +48,7 @@ chatModel = ChatOllama(
     model=MODEL,
     temperature=0,
     num_predict=NUM_PREDICT,
-    base_url="http://127.0.0.1:11434",
+    base_url=OLLAMA_BASE_URL,
 )
 
 retriever = docsearch.as_retriever(
@@ -83,7 +85,7 @@ def chat():
     print(msg)
     chat_history = SQLChatMessageHistory(
         session_id=get_session_id(),
-        connection="sqlite:///chat_history.db",
+        connection=CHAT_DB_URL,
         table_name="message_store",
     )
     response = rag_chain.invoke({
@@ -98,4 +100,9 @@ def chat():
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port= 8080, debug= True)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", "8080")),
+        debug=False,
+        use_reloader=False,
+    )
