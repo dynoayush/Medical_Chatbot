@@ -15,6 +15,8 @@ conda activate medibot
 pip install -r requirements.txt
 ```
 
+Important: run the install and app commands from the activated `medibot` environment. If you use your system `python` instead of Conda, you may see `ModuleNotFoundError` errors for packages like `flask` or `dotenv`.
+
 ### STEP 03 - Create a `.env` file in the root directory
 
 Add your Pinecone credentials and app settings:
