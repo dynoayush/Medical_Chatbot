@@ -1,50 +1,62 @@
-# Build-a-Complete-Medical-Chatbot-with-LLMs-LangChain-Pinecone-Flask-AWS
+# Build-a-Complete-Medical-Chatbot-with-LLMs-LangChain-Pinecone-Flask
 
 # How to run?
-### STEPS:
 
-Clone the repository
-
-```bash
-git clonehttps://github.com/entbappy/Build-a-Complete-Medical-Chatbot-with-LLMs-LangChain-Pinecone-Flask-AWS.git
-```
-### STEP 01- Create a conda environment after opening the repository
+### STEP 01 - Create and activate a conda environment
 
 ```bash
 conda create -n medibot python=3.10 -y
-```
-
-```bash
 conda activate medibot
 ```
 
+### STEP 02 - Install the requirements
 
-### STEP 02- install the requirements
 ```bash
 pip install -r requirements.txt
 ```
 
+### STEP 03 - Create a `.env` file in the root directory
 
-### Create a `.env` file in the root directory and add your Pinecone & openai credentials as follows:
+Add your Pinecone credentials and app settings:
 
 ```ini
-PINECONE_API_KEY = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+PINECONE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+PINECONE_INDEX_NAME=medical-chatbot
+OLLAMA_MODEL=llama3.2:3b
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+FLASK_SECRET_KEY=change-me
 ```
 
+### STEP 04 - Start Ollama
+
+Make sure Ollama is installed, then start the Ollama server:
 
 ```bash
-# run the following command to store embeddings to pinecone
+ollama serve
+```
+
+In another terminal, pull the model if you do not already have it:
+
+```bash
+ollama pull llama3.2:3b
+```
+
+### STEP 05 - Store embeddings in Pinecone
+
+```bash
 python store_index.py
 ```
 
+### STEP 06 - Run the Flask app
+
 ```bash
-# Finally run the following command
 python app.py
 ```
 
-Now,
+Now open:
+
 ```bash
-open up localhost:
+http://localhost:8080
 ```
 
 
@@ -53,5 +65,5 @@ open up localhost:
 - Python
 - LangChain
 - Flask
-- GPT
+- Ollama
 - Pinecone
